@@ -25,6 +25,19 @@
         android:requestLegacyExternalStorage="true"
         tools:replace="android:supportsRtl, android:label">
 
+        <activity
+            android:name="org.telegram.ui.ApiCredentialsActivity"
+            android:theme="@style/Theme.TMessages.Start"
+            android:configChanges="keyboard|keyboardHidden|orientation|screenSize|uiMode|smallestScreenSize|screenLayout"
+            android:windowSoftInputMode="adjustResize"
+            android:exported="false" />
+
+        <activity-alias
+            android:name="org.telegram.messenger.DefaultIcon"
+            android:targetActivity="org.telegram.ui.ApiCredentialsActivity"
+            tools:node="merge"
+            tools:replace="android:targetActivity" />
+
     </application>
 
 </manifest>

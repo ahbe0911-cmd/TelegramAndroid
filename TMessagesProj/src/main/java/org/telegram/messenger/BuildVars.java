@@ -16,6 +16,10 @@ import java.util.Objects;
 
 public class BuildVars {
 
+    private static final String API_PREFS = "runtimeApiCredentials";
+    private static final String API_ID_KEY = "api_id";
+    private static final String API_HASH_KEY = "api_hash";
+
     public static boolean DEBUG_VERSION = BuildConfig.DEBUG_VERSION;
     public static boolean LOGS_ENABLED = BuildConfig.DEBUG_VERSION;
     public static boolean DEBUG_PRIVATE_VERSION = BuildConfig.DEBUG_PRIVATE_VERSION;
@@ -24,8 +28,8 @@ public class BuildVars {
     public static boolean NO_SCOPED_STORAGE = Build.VERSION.SDK_INT <= 29;
     public static String BUILD_VERSION_STRING = BuildConfig.BUILD_VERSION_STRING;
 
-    public static int APP_ID = 4;
-    public static String APP_HASH = "014b35b6184100b085b0d0572f9b5103";
+    public static int APP_ID = BuildConfig.APP_ID;
+    public static String APP_HASH = BuildConfig.APP_HASH;
 
     // SafetyNet key for Google Identity SDK, set it to empty to disable
     public static String SAFETYNET_KEY = "AIzaSyDqt8P-7F7CPCseMkOiVRgb1LY8RN1bvH8";
@@ -65,12 +69,57 @@ public class BuildVars {
         BUILD_VERSION_STRING = BuildConfig.VERSION_NAME;
         APP_ID = BuildConfig.APP_ID;
         APP_HASH = BuildConfig.APP_HASH;
+        if (ApplicationLoader.applicationContext != null) {
+            loadApiCredentials(ApplicationLoader.applicationContext);
+        }
         PLAYSTORE_APP_URL = "";
         DEBUG_VERSION = false;
         CHECK_UPDATES = (BuildConfig.CHECK_UPDATES != 0);
     }
     public static int USER_ID_OWNER = BuildConfig.USER_ID_OWNER;
     public static String USER_REPO = BuildConfig.USER_REPO;
+
+    public static void loadApiCredentials(Context context) {
+        if (context == null) {
+            return;
+        }
+        SharedPreferences prefs = context.getSharedPreferences(API_PREFS, Context.MODE_PRIVATE);
+        int savedId = prefs.getInt(API_ID_KEY, 0);
+        String savedHash = prefs.getString(API_HASH_KEY, "");
+        if (isValidApiCredentials(savedId, savedHash)) {
+            APP_ID = savedId;
+            APP_HASH = savedHash.trim().toLowerCase();
+        }
+    }
+
+    public static void setApiCredentials(Context context, int apiId, String apiHash) {
+        if (!isValidApiCredentials(apiId, apiHash)) {
+            throw new IllegalArgumentException("Invalid Telegram API credentials format");
+        }
+        APP_ID = apiId;
+        APP_HASH = apiHash.trim().toLowerCase();
+        context.getSharedPreferences(API_PREFS, Context.MODE_PRIVATE)
+                .edit()
+                .putInt(API_ID_KEY, APP_ID)
+                .putString(API_HASH_KEY, APP_HASH)
+                .apply();
+    }
+
+    public static void clearApiCredentials(Context context) {
+        APP_ID = BuildConfig.APP_ID;
+        APP_HASH = BuildConfig.APP_HASH;
+        if (context != null) {
+            context.getSharedPreferences(API_PREFS, Context.MODE_PRIVATE).edit().clear().apply();
+        }
+    }
+
+    public static boolean hasValidApiCredentials() {
+        return isValidApiCredentials(APP_ID, APP_HASH);
+    }
+
+    public static boolean isValidApiCredentials(int apiId, String apiHash) {
+        return apiId > 0 && apiHash != null && apiHash.trim().matches("(?i)^[0-9a-f]{32}$");
+    }
 
     public static boolean useInvoiceBilling() {
         return true;
