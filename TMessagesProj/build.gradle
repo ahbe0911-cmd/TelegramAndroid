@@ -89,8 +89,24 @@ dependencies {
     implementation 'org.osmdroid:osmdroid-android:6.1.20'
 }
 
-def getStringForConfig(String s) {
-    return "\"" + s + "\""
+def getStringForConfig(Object s) {
+    def value = s == null ? '' : s.toString()
+    return "\"" + value.replace('\\', '\\\\').replace('"', '\\"') + "\""
+}
+
+// CI appends every secret to gradle.properties, so an unset secret lands there as
+// an empty override (e.g. "APP_ID="). That shadows the default and used to emit an
+// uncompilable field: "public static final int APP_ID = ;". Fall back to the
+// default whenever the value is missing or not a valid integer.
+def getIntForConfig(Object value, String fallback) {
+    def s = value == null ? '' : value.toString().trim()
+    if (!s.matches('-?\\d+')) {
+        if (!s.isEmpty()) {
+            println("Ignoring non-integer build config value '${s}', using ${fallback} instead.")
+        }
+        return fallback
+    }
+    return s
 }
 
 def isWindows = String.valueOf(DefaultNativePlatform.currentOperatingSystem.toFamilyName() == OperatingSystemFamily.WINDOWS)
@@ -139,11 +155,11 @@ android {
         multiDexEnabled true
 
         //obtain your own keys at https://core.telegram.org/api/obtaining_api_id
-        buildConfigField 'int', 'APP_ID', APP_ID
+        buildConfigField 'int', 'APP_ID', getIntForConfig(APP_ID, '0')
         buildConfigField 'String', 'APP_HASH', getStringForConfig(APP_HASH)
-        buildConfigField 'int', 'USER_ID_OWNER', USER_ID_OWNER
+        buildConfigField 'int', 'USER_ID_OWNER', getIntForConfig(USER_ID_OWNER, '0')
         buildConfigField 'String', 'USER_REPO', getStringForConfig(USER_REPO)
-        buildConfigField 'int', 'CHECK_UPDATES', CHECK_UPDATES
+        buildConfigField 'int', 'CHECK_UPDATES', getIntForConfig(CHECK_UPDATES, '0')
         buildConfigField 'String', 'UPDATE_CHANNEL_USERNAME', getStringForConfig(UPDATE_CHANNEL_USERNAME)
         buildConfigField 'String', 'LASTFM_API_KEY', getStringForConfig(LASTFM_API_KEY)
         buildConfigField 'String', 'LASTFM_API_SECRET', getStringForConfig(LASTFM_API_SECRET)
@@ -151,7 +167,7 @@ android {
         vectorDrawables.generatedDensities = ['mdpi', 'hdpi', 'xhdpi', 'xxhdpi']
 
         versionName = Utils['getVersionName']()
-        buildConfigField 'int', 'ADDITIONAL_BUILD_NUMBER', ADDITIONAL_BUILD_NUMBER
+        buildConfigField 'int', 'ADDITIONAL_BUILD_NUMBER', getIntForConfig(ADDITIONAL_BUILD_NUMBER, '0')
         buildConfigField 'String', 'VERSION_NAME', getStringForConfig(versionName)
         buildConfigField 'int', 'VERSION_CODE', Utils['getVersionCode']()
 

@@ -91,11 +91,25 @@ android {
             }
         } else {
             def releaseKeystore = readBuildProp('RELEASE_KEYSTORE_FILE', null)
-            def useRealKeystore = releaseKeystore != null
+            def releaseStorePw = readBuildProp('RELEASE_STORE_PASSWORD', null)
+            def releaseKeyPw = readBuildProp('RELEASE_KEY_PASSWORD', null)
+            def releaseKeyAlias = readBuildProp('RELEASE_KEY_ALIAS', null)
+
+            // The real keystore is only usable when the file and all of its
+            // credentials are available. CI writes empty values for secrets that
+            // are not configured, so check them instead of trusting the path
+            // alone — otherwise signing fails at the very end of a long build.
+            def useRealKeystore = releaseKeystore != null &&
+                    new File(releaseKeystore.toString()).exists() &&
+                    releaseStorePw != null && releaseKeyPw != null && releaseKeyAlias != null
+            if (releaseKeystore != null && !useRealKeystore) {
+                println('Release keystore credentials are incomplete, falling back to the bundled test keystore.')
+            }
+
             def keystorePath = useRealKeystore ? releaseKeystore.toString() : "${rootProject.projectDir}/TMessagesProj/config/test.keystore"
-            def storePw = useRealKeystore ? readBuildProp('RELEASE_STORE_PASSWORD', '') : 'ILRvukMS1XoArnMbCmdMeu3RDigo'
-            def keyPw = useRealKeystore ? readBuildProp('RELEASE_KEY_PASSWORD', '') : 'ILRvukMS1XoArnMbCmdMeu3RDigo'
-            def keyAliasName = useRealKeystore ? readBuildProp('RELEASE_KEY_ALIAS', '') : 'telegramtest'
+            def storePw = useRealKeystore ? releaseStorePw.toString() : 'ILRvukMS1XoArnMbCmdMeu3RDigo'
+            def keyPw = useRealKeystore ? releaseKeyPw.toString() : 'ILRvukMS1XoArnMbCmdMeu3RDigo'
+            def keyAliasName = useRealKeystore ? releaseKeyAlias.toString() : 'telegramtest'
 
             debug {
                 storeFile file(keystorePath)

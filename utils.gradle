@@ -1,14 +1,23 @@
 
+// CI appends every Actions secret to gradle.properties, so a secret that is not
+// configured lands there as an empty override (e.g. "APP_ID="), shadowing the
+// default. Coerce such values back to a sane default instead of blowing up (or,
+// worse, generating an uncompilable BuildConfig field like "int APP_ID = ;").
+def safeInt = { Object value, int fallback ->
+    def s = value == null ? '' : value.toString().trim()
+    return s.matches('-?\\d+') ? s.toInteger() : fallback
+}
+
 def getVersionName = {
-    return APP_VERSION_NAME + "." + ADDITIONAL_BUILD_NUMBER
+    return APP_VERSION_NAME + "." + safeInt(ADDITIONAL_BUILD_NUMBER, 0)
 }
 
 def getVersionCode = {
-    return (APP_VERSION_CODE.toInteger() * 10 + ADDITIONAL_BUILD_NUMBER.toInteger()) + ""
+    return (safeInt(APP_VERSION_CODE, 0) * 10 + safeInt(ADDITIONAL_BUILD_NUMBER, 0)) + ""
 }
 
 def isFdroid = {
-    return ((F_DROID.toInteger() == 1) as Boolean)
+    return ((safeInt(F_DROID, 0) == 1) as Boolean)
 }
 
 ext {
@@ -16,4 +25,5 @@ ext {
     Utils['getVersionName'] = getVersionName
     Utils['getVersionCode'] = getVersionCode
     Utils['isFdroid'] = isFdroid
+    Utils['safeInt'] = safeInt
 }
