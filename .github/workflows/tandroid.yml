@@ -112,12 +112,12 @@ jobs:
         with:
           subject-path: 'artifact/*.apk'
 
-      - uses: actions/upload-artifact@master
+      - uses: actions/upload-artifact@v4
         name: Upload artifact
-        if: ${{ contains(github.event.head_commit.message, '[Release]') }}
         with:
           name: ForkClient
           path: artifact/
+          if-no-files-found: error
 
   release:
     name: Create Release.
